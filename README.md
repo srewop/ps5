@@ -1,408 +1,556 @@
-Problem Set 4: Password Cracking
-================================
+Problem Set 4: Spell Checker
+============================
 *Computer Programming for Lawyers - Fall 2024*
 
 Introduction
 ------------
 
-On this assignment, you will explore several techniques for cracking passwords
-in order to gain a deep technical understanding of state-of-the-art measures for
-storing passwords securely.
-In doing so, you will demonstrate that you are familiar with lists, strings,
-for-loops, and iteration.
+In this assignment, you will begin to work on files full of text, culminating in a functional
+spell-checking program. You will demonstrate your mastery of lists, for-loops, strings, and dictionaries.
 
-Your assignment repository contains the following files:
-* `cplhash.py` (library with two hash functions)
-* `words.txt` (around 10,000 of the most popular English language words)
-* `passwords.txt` (around 10,000 of the most popular passwords found on a breached website)
+This repository contains the following files:
+* `word_list.txt` (235,886 English words, from the MacOS).
+* `word_list_small.txt` (296 English words, for use with `declaration.txt`).
+* `declaration.txt` (a file containing the first two paragraphs of the declaration of independence, for use with `word_list_small.txt`).
+* `alice.txt` (a file containing the Mad Hatter chapter of Alice in Wonderland).
+* `brandeis.txt` (a file containing Justice Brandeis's dissent in Olmstead v. United States, 277 U.S. 438, 471 (1928))
+* `clean.ipynb` (starter code for the first task of this assignment)
 
 Expectations
 ------------
 * This is an individual assignment. The standard course collaboration policy applies.
-* You are permitted to use only the Python features we have covered so far (Chapters 1-9).
+* You are permitted to use only the Python features we have covered so far (Chapters 1-10).
 * You should use effective programming style. A portion of your grade will be
 determined by your programming style.
-  * Please continue to adhere to the [_Style Guide_ on GitHub](https://github.com/Computer-Programming-for-Lawyers/Fall-2024/blob/main/style-guide.md).
-  * Remember to include headers in all of your programs.
-  * Style is inherently subjective. Use your best judgment and emulate the style from the
-    textbook. When in doubt, ask on Ed.
+  * Please continue to adhere to the [Style Guide](https://github.com/Computer-Programming-for-Lawyers/Fall-2024/blob/main/style-guide.md).
 
 Summary of Tasks
 ----------------
-* Build and submit file `hash_collisions.ipynb`
-* Build and submit file `dictionary_attack.ipynb`
-* Build and submit file `brute_force.ipynb`
+* Build and submit file `clean.ipynb`
+* Build and submit file `spell.ipynb`
 
 As a reminder, there is no formal 'submit' button on GitHub Classroom. As long as you complete your work in Codespaces and commit and push your work once complete, we will be able to see your final product. For a reminder on how to commit and push your work, see the file `codespaces-instructions.md` (as a reminder, you can open this file by clicking on it in the file explorer, or by entering `code codespaces-instructions.md` into the terminal).
 
 Start Early
 -----------
 
-You know the drill at this point. Please start early. You'll be glad you did.
+We hope this message is abundantly clear by now. This problem set is much more involved than the previous three. Start early, do a little bit of work each day, ask questions on Ed and in office hours!
 
-
-Important Warnings
-------------------
-
-* Although the steps we are teaching you below are a bit stylized and simplified to make sense as a problem set,
-we are teaching you a key password-cracking technique used for evil by computer criminals and for good by computer security professionals.
-We urge you to use these new skills only for good and never evil. If you need a good reason (other than your own
-moral conscience) to listen to this advice, the
-unauthorized use of another person's password might lead you to become the target of a criminal investigation.
-We neither condone nor authorize password cracking on production systems.
-
-* As usual, make sure your programs behave in a manner identical to our example prompts.
 
 Roadmap
 -------
 
-This problem set is going to be a little different. The last
-two problem sets were a grab bag of toy examples meant to assess your mastery
-of basic Python. This problem set tells the story of password cracking.
-
-*You will be asked to complete three tasks. Each task is worth one-third of the total possible points for the
-assignment (excluding style points).*
-
-***
-
-Hash Functions
-==============
-
-The core technology at the heart of this problem set is an ingenious type of computational function called a *hash function*. A hash function uses a series of mathematical operations to transform a string of any size (like `'Hello, world!'`) into a random-looking string of a fixed size (like `'6cd3556deb0da54bca060b4c39479839'`). This is what a hash function looks like in practice:
-
-```python
-import cplhash
-cplhash.md5_hash('hi')
-```
-'49f68a5c8493ec2c0bf489821c21fc3b'
-
-```python
-cplhash.md5_hash('Hello, world!')
-```
-'6cd3556deb0da54bca060b4c39479839'
-```python
-cplhash.md5_hash('I love computer programming for lawyers')
-```
-'9adf42d868c9cffc3f6469fa842e11e5'
-
-
-The python function `cplhash.md5_hash()` is a hash function which takes a string as input and produces 32 letters or numbers of seeming gibberish as output. (It implements what is known as the MD5 hash algorithm; thus the name.) We call these outputs *hash values* or, simply, *hashes*. Hash functions have some very useful properties that allow them to be used to solve otherwise very difficult problems. The two most important properties for our purposes are:
-
-1. *Repeatability*: A given hash function will always return precisely the same hash value for a given input. In the example above, the `md5_hash()` value of `'hi'` will always be `49f68a5c8493ec2c0bf489821c21fc3b`.
-
-2. *One-Way*: Your computer can generate a hash value for a given input *efficiently*, meaning without using much time, processing power, or memory. But hash functions are designed to make it computationally *inefficient* or *infeasible* to reverse a hash value. Given a particular hash value, it is very, very, very difficult to find a corresponding input string that generates that value. For purposes of our class, you should consider the reverse function not only difficult, but essentially impossible. In other words, if we told you the output of `md5_hash()` was `'23eeeb4347bdd26bfc6b7ee9a3b755dd'`, you would have no way to know that the input was `'python'`. The only way to find out would be to try every possible string until you found a match, which is impossibly slow in practice.
-
-It may not yet be obvious how, but these two properties in tandem--repeatability and one-way-ness--can be combined to solve many very difficult problems. In this problem set, we'll look at how hash functions figure into password security.
-
-A note about how to calculate a hash value: We have provided you with a convenient Python library called `cplhash.py` that contains the hash functions you will need for this assignment. The file contains two hash functions, `cplhash.md5_hash()` and `cplhash.short_hash()`. The `cplhash.md5_hash()` function takes a string as its argument and produces a 32-character hash using the MD5 algorithm. The `cplhash.short_hash()` function produces a 3-character hash, which is not something you would want to do in practice, but which we are doing to make one of the tasks possible. Because `cplhash.py` is in the same directory as your program, you can "call" its functions once you add `import cplhash` to the beginning of a `.py` file. After that, you can call `cplhash.md5_hash()` and `cplhash.short_hash()` as desired. Here's an example:
-   
-   ```python
-   import cplhash
-   cplhash.md5_hash('hello')
-   ```
-   '5d41402abc4b2a76b9719d911017c592'
-   ```python
-   cplhash.short_hash('hello')
-   ```
-   '5d4'
-   
-Before you read further, you might play with these two functions. Try passing various strings to these functions and comparing the hashes that result. How do the hash values for two very similar strings (say differing by only a single character) compare to one another? Can you find two strings that produce the same hash value using `cplhash.md5_hash()`? (If you can, please email us right away!) How about using `cplhash.short_hash()`? 
+Lawyers focus on text more than any other type of data, so it's natural that lawyer-programmers
+should learn how to process text. This problem set will ask you to process
+large text files in order to do some useful things. This is also the first assignment that will culminate
+in a truly self-contained and useful piece of software: a working spell
+checker that will try to suggest the correct spelling of a misspelled word.
 
 ***
 
+*This week, we're asking you to complete only two tasks. Task 1 is worth one-third of the total possible points for the assignment (excluding style points), and Task 2 is worth two-thirds of the total possible points for the assignment. Task 2 is broken into four
+Parts that, collectively, count for two-thirds. **You should hand in only one copy of spell.ipynb, a version that incorporates Parts A through D.***
 
-Password Cracking
-=================
+Task 1: clean.ipynb
+----------------
 
-Background
-----------
-Digital information is easy to aggregate, store, and access, a fact we enjoy every day
-as we browse the news online or search StackOverflow for help with Python. Unfortunately,
-this convenience also makes data easy to steal. To keep digital resources safe, we typically lock them in such a way that
-only legitimate users can access them. But how do we know whether someone is a "legitimate user"?
-Security experts usually group methods for doing so into three categories:
-* Something you know (passwords, security questions)
-* Something you have (smartphones - two factor authentication, a special token to read off or plug into your computer)
-* Something you are (fingerprints, iris scans, facial recognition)
+*Worth one-third of the total possible points.*
 
-As you're no-doubt aware, passwords are the most popular option. They are cheap to implement,
-difficult to steal (since, ideally, the only place they're stored is in your head),
-and easy to change if they are lost.
+A crucial (if somewhat hated) step of any form of data analysis is _data cleaning_. Most data you'll deal with in the real world will be inconsistent, messy, or formatted for a different purpose. Some of these flaws come from humans (think data entry errors) and others come from technical sources (think corrupted files). An analyst cleans data by creating little programs to remove the errors, resolve the inconsistencies, and recover the corrupted information. Data cleaning tends to be a painstaking process.
 
-Storing Passwords
------------------
-Imagine you're running a website like Twitter or Facebook. You have hundreds of millions of users,
-each of whom has a username and a password. How do you store the passwords? At first, you might just
-stick all of the passwords in a file, unaltered in "plain text". When a user tries to log in, all you need to do
-is make sure the password she supplies matches the one you have on file.
+The other task in this problem set processes texts at the level of the individual word, as opposed to the line, sentence,
+paragraph, or character. To clean a text so it is ready for analysis, we must transform paragraphs of information into lists of individual words.
+*Your task is to write a program that will isolate the individual words of a text from all of the whitespace and punctuation
+in the input text file.*
 
-As it turns out, this strategy is very insecure. What if your website were to be the victim of a data breach?
-An attacker has just stolen the file containing all of your users' passwords, granting access to every single account on your site.
-Worse, users tend to reuse passwords across sites, so it's very likely that the suffering won't
-be confined to your site alone.
+Complete the program started for you in `clean.ipynb`. Your program should turn files containing arbitrary text into lists of cleaned words. These clean words will be written to a second file, one word per line (the first time all semester we've written data to a new file). These files full of cleaned words will be analyzed in the other task of this assignment. Remember that we will test your code using different text files, so you might try to download texts from the Internet to stress test your code (many public domain books are available in `.txt` form).
 
-In practice, websites never store the passwords in plain text.
-Instead, they store the hash values corresponding to their users' passwords. Why does this improve security?
+`clean.ipynb` reads two filenames as input: the name of a file containing arbitrary text (such as a Supreme Court opinion) and the name of a file to which it should store the result of the cleaning process.
 
-If your password is `'123456'`, a website stores the value returned by the function `cplhash.md5_hash('123456')`, or `e10adc3949ba59abbe56e057f20f883e`. Whenever you try to log in, the website takes the hash of the guess you've provided and checks whether it matches the hash of your password. In other words, it tests whether `cplhash.md5_hash(guessed_password) == cplhash.md5_hash(actual_password)`. This way, the website only ever needs to store `cplhash.md5_hash(actual_password)` rather than `actual_password` itself.
-   
-If an attacker were to steal the website's password file, she would get only the hashes. She would know that a user had been using a password that corresponds to the hash value `e10adc3949ba59abbe56e057f20f883e`, but she wouldn't know the password itself. She'd have to find the inputs that produced those hashes to actually get any passwords, a task we've already said is nearly impossible thanks to the one-way property of hash functions.
+We have provided you with some starter code to help you get up and running. Specifically, our starter code
+already includes a few lines at the beginning that read the contents of the input text file into a string variable called `text`
+and a few lines at the end that write the content of a list of strings called `words` to the output text file (one word per line).
 
-Task 1: hash_collisions.ipynb
--------------------------
+You will need to fill in the rest of the file, which asks for the file names as input, cleans the string stored in `text`, and stores the resulting strings into a list called `words`. Your cleaning process should perform the following steps in the following order:
 
-*This task is worth one-third of the total possible points (excluding style points).*
+1. Remove any of the following punctuation from any place in the text: `,!.?;"()\:-'`. We have provided these characters in a constant called `PUNCTUATION` at the
+beginning of the starter code. (Hints: (1) Strings are lists of characters--meaning that you can use a `for` loop to loop over its elements. (2) Consider the string `.replace()` method.)
 
-You may have noticed that a hash function always produces an output of the same length (32 characters
-for `cplhash.md5_hash`) no matter how long its input. You could give it a very long input (say,
-all of *War and Peace*) and it would still output a 32-character string.
-This means that there exist more possible inputs
-that you could give to `cplhash.md5_hash()` than there are outputs it can produce. If you
-try hard enough, you will eventually find two inputs for which `cplhash.md5_hash()` produces the same output.
-This is called a *hash collision*. Why are hash collisions bad? If you store the hashes of your users'
-passwords, it's possible that someone could type the wrong password but still log in if the hashes happen
-to collide. Hashes appear in a number of other security-sensitive settings (like sending encrypted
-messages) where collisions would be disastrous.
+	*Be sure you understand what we are asking you to do in this step.* You are meant to _remove_ punctuation, even if doing so results in something that is no longer an English word. For example, this will turn the contraction "isn't" into the non-word "isnt"; it will mush together two words surrounding a hyphen turning "writing-desk" into "writingdesk"; and it will even mush together two words surrounding a lot of spaceless punctuation turning "Happiness.--That" into "HappinessThat". You are not expected to "fix" these cases, and thus your end product will include a lot of "words" that aren't proper English words as a result.
 
-For your first task, we will give you a text file containing a list of words.
-**Your program, `cplhash_collisions.ipynb`, will take as inputs the name of this text file
-and one additional word. Your program should create a Python list of all
-of the words from the file that have the same hash
-as the additional word. It should then print the words in this list in alphabetical order.**
+2. Convert all words to lowercase. The end result should contain `wiretap` rather than `Wiretap`. And, yes, even words that properly have an uppercase letter, such as `I`, must be lowercased.
+
+3. Break the text into a list of words, in the process removing all whitespace between words.
+
+4. Remove any words that do not consist solely of letters. (e.g. `brandeis.txt` contains citations, and none of their volume numbers or page numbers should end up in the clean data.)
+
+Take care to use exactly these two variable names: `text` for the input string and `words` for the list of cleaned words. You can use other, temporary variables to store related data in between, but start with `text` and end with `words`.
+
+We include a few examples below. If you process the `alice.txt` file like so:
 
 ```
-Word file: 𝘄𝗼𝗿𝗱𝘀.𝘁𝘅𝘁
-Collisions for: 𝗺𝗶𝗹𝗹𝗮𝗿𝗱
-complaint
-informational
-street
+Input file: alice.txt
+Output file: alice_clean.txt
 ```
 
+and you look in the new file `alice_clean.txt`` that has appeared in your Codespace, the first few lines of the file should be:
+
 ```
-Word file: 𝘄𝗼𝗿𝗱𝘀.𝘁𝘅𝘁
-Collisions for: 𝘄𝗼𝗼𝗱𝗿𝗼𝘄
-daughter
+chapter
+vii
+a
+mad
+teaparty
+there
+was
+a
+table
+set
+...(many lines omitted)
+```
+
+If you process the `brandeis.txt` file like so:
+
+```
+Input file: brandeis.txt
+Output file: brandeis_clean.txt
+```
+
+and you look in the new file `brandeis_clean.txt` that has appeared in your Codespace, the first few lines of the file should be:
+
+```
+mr
+justice
+brandeis
+dissenting
+the
+defendants
 were
+convicted
+of
+conspiring
+...(many lines omitted)
 ```
 
-```
-Word file: 𝘄𝗼𝗿𝗱𝘀.𝘁𝘅𝘁
-Collisions for: 𝗴𝗿𝗼𝘃𝗲𝗿
-atomic
-clara
-computational
-eternal
-```
 
-**Any loops you use must be for-loops. Since this file relies on `cplhash.py` to work, make sure
-to add it to the list of dependencies in the header.**
-
-Before you can get started on this program, you'll need to know one more helpful bit of Python: The file `words.txt` (like its sister file, `passwords.txt`, which we'll use later) contains one word per line. To read a file structured in this fashion into a list of words, you can use the following commands:
-   
-   ```python
-   >>> filename = 'words.txt'
-   >>> word_list = open(filename).read().split('\n')
-   >>> word_list
-   ['the', 'of', 'and', 'to', ...]
-   ```
-   
-By this point in the semester, the second command should no longer be a complete mystery. The `open()` function opens the file named by its argument. The `read()` method reads the contents of the opened file into a string. As you learned this week, the `split()` function divides a long string into a list of shorter strings, splitting every time the argument appears. Since we gave `split()` the argument `'\n'`, it will divide the string every time it sees a new line. We'll revisit the `open()` and `read()` functions in depth later in the semester.
-
-**For Task 1, you are required to use `cplhash.short_hash()` to look for hash collisions.** You wouldn't have found 
-any collisions if you had used `cplhash.md5_hash()`, which is far stronger. (But read the epilogue for more on md5!)
-**This is the only Task in this problem set that requires the `cplhash.short_hash()` function.
-Use `cplhash.md5_hash()` for Tasks 2 and 3.**
-   
-
-Cracking Passwords
-------------------
-
-For your next tasks, you will put yourself in the shoes of an attacker.
-Although doing so may feel uncomfortable, security experts design systems by planning for
-the worst-case attacker. Only by understanding the attacker's perspective can you develop
-effective countermeasures.
-
-Suppose you have compromised a password database. You now have a long list of hashes, and you're eager to determine the corresponding passwords. As we mentioned before, it's nearly impossible to determine the input that a hash function used to produce a specific output.
-
-Passwords, however, are not any random input. Some passwords are far more common than others.
-For example, past data breaches have shown that users tend to overuse passwords like `123456` and
-`password1`. To reverse many hashed passwords, we can make educated guesses about the kinds of passwords people are
-most likely to choose.
-
-Two popular approaches for identifying passwords associated with particular hashes are so-called *dictionary attacks*
-and *brute-force attacks*. You will implement one of each type in the tasks that follow.
-
-Task 2: dictionary_attack.ipynb
-----------------------------
-
-*This task is worth one-third of the total possible points (excluding style points).*
-
-A dictionary attack is quite simple: try to break a hash using passwords that are known to be popular. People
-tend to use a small set of weak, common passwords typically derived from words in the English language,
-so dictionary attacks usually reverse a large number of hashes. 
-
-All you need is a list of commonly used passwords. Researchers have collected these, a silver-lining byproduct of massive data breaches,
-offering valuable insight into the way users create passwords. We have included
-almost 10,000 of the most common passwords from a past data breach in the "dictionary file" `passwords.txt` and almost 10,000 of the most popular words in the English language in `words.txt`. Attempting a dictionary attack using either database is likely 
-to be fruitful. You just need to convert each candidate password into a hash value and then compare it to the hash values
-in the compromised database.
-
-We can make a dictionary attack even more powerful by transforming the passwords in simple ways that
-create additional educated guesses. For example, users will often make simple character substitutions--such as turning an `a` into an `@`
-symbol, to comply with a system's password complexity requirements.
-
-In this task, you will perform a dictionary attack that also attempts to transform its guesses. **Specifically, you will write a program that takes as its input a hash (remember, one generated with `cplhash.md5_hash()`) and the name of a file containing a list of words or passwords, each on its own line.** The words in this file are ordinary, non-transformed English words. Your program will use a single for-loop to guess each word or password twice: first in its non-transformed form and then second with all of the following characters substituted by your program:
-
-* `@` for `a` and `A`
-* `3` for `e` and `E`
-* `1` for `i` and `I`
-* `0` for `o` and `O`
-
-For example, it would guess `tombrady` and then also `t0mbr@dy`. (`tombrady` is in file; your program will make the transformations necessary to generate `t0mbr@dy`.) Do all of the transformations at once, so don't separately test `t0mbrady` or `tombr@dy`. Your program should print a matching password and immediately exit if it finds a match, and print `No password found` if it fails to find a match.
-
-(Note: the hashes below do not appear in bold, but they represent text the user inputs, not text your program should output.)
-
-```
-Hash to break: 1b3231655cebb7a1f783eddf27d254ca
-Dictionary file: 𝘄𝗼𝗿𝗱𝘀.𝘁𝘅𝘁
-super
-```
-
-```
-Hash to break: 1cd30461f1450f450c4fc598afe5c6d5
-Dictionary file: 𝘄𝗼𝗿𝗱𝘀.𝘁𝘅𝘁
-sup3r
-```
-
-```
-Hash to break: 63184a2e97244339cd4c5be1a2fd2a0e
-Dictionary file: 𝘄𝗼𝗿𝗱𝘀.𝘁𝘅𝘁
-b0wl
-```
-
-```
-Hash to break: 6fd8a57fe4ac4adb8da6137b503250ed
-Dictionary file: 𝘄𝗼𝗿𝗱𝘀.𝘁𝘅𝘁
-No password found
-```
-
-If you want to find additional hashes you can use to test your code, just use the `cplhash.md5_hash()` function 
-to generate hashes of passwords you know your program should find and passwords you know your program 
-shouldn't find. Ensure your program behaves as expected. 
-
-Task 3: brute_force.ipynb
-----------------------
-
-*This task is worth one-third of the total possible points (excluding style points).*
-
-A *brute-force attack* is less clever than a dictionary attack. Rather than predict likely passwords, a brute-force
-attack entails guessing every single possible password until it finds one that matches. This can be a very slow process,
-however, so brute force attacks need to be confined to passwords matching a narrow constraint, such as passwords of a particular
-length. 
-
-Databases of breached passwords show that short, numeric passwords are
-exceedingly popular. One explanation for this phenomenon is that
-people tend to use birthdays as passwords. **Write a program that
-takes a 32-character MD5 hash (i.e., a string generated using the
-`cplhash.md5_hash()` function) as input and tries every possible six-digit
-birthday (MMDDYY) to see which one was used to generate the hash.**
-
-In other words, it should try all possible passwords of the form
-`051689` (May 16th, '89). It should try all 12 months (single-digit
-months like April should have two digits: `04`). It should try all
-possible two-digit days (`01` through `31`). For the sake of
-simplicity, pretend that every month has 31 days; in practice, your
-program will make only 7 unnecessary guesses per year (February x3,
-April, June, September November). It should try all 100 years (`00`
-through `99`).
-
-Your program should make its guesses using three nested for-loops (one each for months, days, and years), each using the `range()` function. If it finds
-a password whose hash matches the user's input, it should print the password, stop guessing, and
-immediately exit the program so as to avoid performing unnecessary work.
-If it has tried every possible birthday and cannot find a match, it should print `No password found` and exit.
-
-
-(Note: the hashes below do not appear in bold, but they represent text the user inputs, not text your program should output.)
-
-```
-Hash to break: ba36671fe7e883e660a543204e9c67d9
-031469
-```
-
-```
-Hash to break: 3e4fc29835685fa02b91b67451b0170a
-122532
-```
-
-```
-Hash to break: 56cf68f73da0248a1712f198d9c1e0d0
-No password found
-```
-
-Once again, if you want to find additional hashes you can use to test your code, just use the `cplhash.md5_hash()` function 
-to generate hashes of birthdate strings you know your program should find. Ensure your program behaves as expected.
-
-*One style note:* It is considered bad style to use *magic numbers* like `12` and `31` directly in your code without
-explanation; instead
-you should save these values to variables at the top of your program just after any `import` statements
-that you need. Since these values never change during the execution of the program, they are known as
-*constants*. To distinguish constants from other variables, write their names in UPPERCASE_STYLE
-(`MONTHS_PER_YEAR` and `DAYS_PER_MONTH`) and precede each constant with a comment explaining what it means.
-You can then use these constant variables as necessary in your code.
+*A word of warning:* Since this is the first time you have created a program that can write to a file, we'll take a
+moment here to give you a word of warning. When Python writes to a file, it permanently deletes any pre-existing versions
+of the file. For emphasis, *there is no way to recover a file once you have overwritten it with Python.* If you use
+Python to write to a file called `very_important_brief.docx`, you will permanently delete the existing version of
+`very_important_brief.docx`. To keep you from shooting yourself in the foot, the starter code for `clean.ipynb` will print an error message if you tell it to overwrite your input file or to overwrite a python file. But you can still overwrite other files if you're not careful with your code. Because you're working in Codespaces, you won't be at risk of deleting files on your local computer. If you accidentally overwrite any of the text files in your Codespace, you can find copies of them in the template repository for this Problem Set. ## XXX ADD LINK AFTER CREATING
 
 ***
 
-Epilogue
-========
+Task 2: spell.ipynb
+----------------
 
-You have now completed your whirlwind journey through the world of password-cracking. These methods represent
-some of the most basic and effective tools in the password-cracking arsenal. In the wrong hands, they
-can be used to harm others, but we hope that you have learned a slightly different lesson from this exercise.
+*Worth two-thirds of the total possible points.*
 
-Now that you have invested time learning how
-attackers extract passwords from hashes, you are prepared to design password systems that resist attack.
-* Researchers have discovered that they can manufacture hash collisions using md5, the hash function algorithm you used throughout
-this problem set, thus rendering md5 unacceptably weak for production uses. Many websites have moved to using newer
-algorithms that offer better collision resistance, with SHA-2 being a popular choice.
-* Modern systems also use a method called *salting* that dramatically increases
-the amount of work an attacker needs to break a database of hashes.
-* You learned that short numeric passwords are weak and can be broken with brute-force attacks. This informs the
-popular wisdom that passwords should be relatively long and contain a wide variety of characters (numbers, upper and lowercase
-letters, and special characters).
-* You learned that people tend to choose the same common passwords over and over again. If you were to design a website,
-you could reject user passwords if they come from this list or are minor transformations of the passwords on this list.
-* You learned that people tend to use words from the dictionary transformed in tiny ways, so you can reject these sorts of passwords
-as well.
+Now, let's build a spell checker.
 
-Although passwords remain an exceedingly popular way of authenticating users, many companies and researchers eagerly
-await their demise.
-* Passwords that are long and complicated enough to be secure are often hard to remember,
-so users tend to choose weak passwords whenever possible. Users are also prone
-to simply forgetting passwords, which is a major source of frustration.
-* Managing passwords for the dozens of websites with which we interact verges on impossible. Users tend to reuse the same
-passwords across multiple sites or keep spreadsheets (or even stickynotes) of passwords. These behaviors serve only to
-make passwords even less secure.
+We'll tackle this in four parts. **IMPORTANT NOTE: Make sure each part of your program is working before moving to the next part.**
 
-With that said, passwords remain better than any proposed alternatives, so they unfortunately continue to be common
-in practice. In recent years, several efforts have been made to improve or rehabilitate passwords and password management.
-* In 2021, most websites do hash (and salt) their passwords. A few years ago, this was not the case.
-* Modern smartphones substitute a password for a fingerprint or facial recognition. Since fingerprint readers are uncommon on laptops (and can sometimes be fooled), these techniques have not yet made it to full-sized computers.
-* Many websites now use two-factor authentication, where you log in with both a password and a temporary code sent to your smartphone.
-Doing so thwarts password-cracking by requiring both "something you know" (a password) and "something you have" (a smartphone).
-* Password-managers like Lastpass are common ways of coping with the sheer number of different passwords that we deal with on a
-daily basis. By eliminating the need to remember all of your passwords, password managers make it possible to use long, complicated,
-hard-to-break passwords and to use different passwords on every single site. Security experts remain divided on whether password
-managers improve security by making it easier to use longer passwords or hurt security but storing all of your passwords in one place.
+### Part A: The Basic Spell-Checker
 
-Researchers are working hard to eliminate passwords entirely. One can only hope that, by the time your
-children are in law school, passwords are as foreign to them as floppy disks are to you.
+Because it can get a bit ungainly working with large files with thousands of words, we've given you a small example that you should initially work to spell-check. The file is called `declaration.txt` and contains the first two paragraphs of the Declaration of Independence, 353 words long, with some spelling errors intentionally introduced by us. It is meant to be used with `word_list_small.txt`, a list of just 296 (correctly-spelled) words that is derived from the words in `declaration.txt`.
 
-We hope that this problem set has been a valuable learning experience about both Python and passwords.
+Once your code works well on `declaration.txt`, you can move on to the other two, longer texts, `alice.txt` and `brandeis.txt`, to which we have also intentionally introduced some spelling errors. Both of these larger files are meant to be used with a more complete file of correctly-spelled words called `word_list.txt`.
+
+Remember that you're not supposed to be working with `declaration.txt`, `alice.txt`, or `brandeis.txt` directly in this task. Instead, request as input the name of a text file full of words as generated by your completed `clean.ipynb`. (e.g. `alice_clean.txt` or `brandeis_clean.txt` in the previous examples). Also request as input the name of the appropriate word_list file. (We have already cleaned the word_list files as if they had been run through `clean.ipynb`.)
+
+*For each word (i.e., a "test word") found in the cleaned input text that is not in the word_list of properly spelled words, your program should report a potential misspelling by printing each potentially misspelled word on a line by itself. Don't get too caught up in thinking of this as a spell checker: In essence, you're checking whether words from one text file are in another list of words that are confirmed to be spelled correctly.*
+
+Sample outputs are as follows. The first output is printed in full. The other two are just excerpts:
+
+```
+Input file: declaration_clean.txt
+Word list file: word_list_small.txt
+
+states
+events
+bands
+powers
+sttaion
+laws
+naturev
+opinions
+requires
+theg
+causes
+truths
+selfevident
+created
+endowed
+rights
+happinessthat
+rights
+governments
+instituted
+deriving
+powers
+governed
+ends
+rigvht
+enw
+principles
+organizing
+powers
+governments
+changed
+causes
+shewn
+evils
+ot
+abolishing
+forms
+abuses
+usuppations
+pursuing
+evinces
+guards
+futrue
+securitysuch
+has
+colonies
+constrains
+systems
+presyent
+injuries
+usurpations
+having
+states
+facts
+submitted
+```
+
+```
+Input file: alice_clean.txt
+Word list file: word_list.txt
+
+vii
+teaparty
+having
+using
+elbows
+looked
+remarked
+isnt
+invited
+wants
+hte
+remarks
+... (hundreds of additional "misspelled" words)
+```
+
+```
+Input file: brandeis_clean.txt
+Word list file: word_list.txt
+
+brandeis
+defendants
+convicted
+persons
+charged
+arrested
+indicted
+telephones
+means
+communicated
+... (hundreds of additional "misspelled" words)
+```
+
+If you want to know why so many properly spelled words are being flagged as misspellings, peek ahead at the Epilogue of this assignment.
+
+
+### Part B: Suggesting Corrections
+
+Let's improve on this spell checker. To emulate the spell checker you are used to in Microsoft Word or Google Docs, *your program must also recommend
+words from the word_list file that the user might have meant instead of the misspelled word, by applying a heuristic.*
+To a computer programmer, a *heuristic* is a rule-of-thumb that is effective an acceptable amount of the time.
+
+Your spell checker won't be quite as intelligent as a commercial spell
+checker: it will explore only a single heuristic, the "stray
+insertion" heuristic, which recognizes that typists sometimes insert
+an extra character that does not belong. Instead of spelling `bread`,
+a user might accidentally type `breead` or `breatd`.
+
+Whenever you detect a misspelled word, apply this heuristic to generate a list of every possible string of characters the user might have meant to have typed instead. To be clear, most of the candidates you generate will be gibberish that aren't real words. We'll get rid of all of those gibberish words in a later step. For now, just come up with every word the user might have meant to have typed.
+
+You must test this heuristic exhaustively. So you need to consider the word with the first letter removed, the second letter removed, and so on, all the way to the word with the final letter removed. **Figuring out how to generate all of these subtle variations is probably the hardest part of the assignment. Revisit the materials from week 4 lecture if you're struggling.** As a hint, break up the misspelled word into smaller parts that you then reassemble through concatenation. So, let's say the input includes the misspelled word `breatd` rather than `bread`. To apply the heuristic, you will need to generate all of the following possibilities:
+
+```
+reatd
+b + eatd
+br + atd
+bre + td
+brea + d # This is the right one
+breat
+```
+
+You'll need to use a for-loop to generate these six possibilities. Inside this for-loop, how do you create the small sub parts on each line above (such as `eatd`, `br`, or ,`td`)? The answer is by generating slices ("bread slices", heh) with carefully selected indices. Pay close attention to our coverage of slices and concatenation in lecture and lab.
+
+Once you have created a list of every single possible correction produced by the heuristic, you must next get rid of the gibberish non-words. To do this, you must filter out those that do not appear in the word_list. The small number of words that remain are possible corrections that you should recommend to the user.
+
+As output, whenever your program detects a misspelling, print on one line: the word, the characters `->` surrounded by spaces, and the list of recommendations separated by commas and spaces. For example:
+
+`events -> evens, event`
+
+If you did not find any candidates in the word_list, meaning you have no good guesses for what the user might have meant, in place of suggestions, print the string `(No suggestions)`, like so:
+
+`endowed -> (No suggestions)`
+
+Be aware that testing the heuristic on dozens of misspellings can take a long time! This is the first time you will have written code that may take minutes rather than seconds to run. This is why we have you start with `declaration.txt`, which should run in a matter of seconds, even on relatively slow computer hardware.
+
+Sample outputs are as follows. The first output is printed in full. The other two are just excerpts:
+
+```
+Input file: declaration_clean.txt
+Word list file: word_list_small.txt
+
+states -> tates, state
+events -> evens, event
+bands -> band
+powers -> power
+sttaion -> (No suggestions)
+laws -> las, law
+naturev -> nature
+opinions -> opinion
+requires -> require
+theg -> the
+causes -> cause
+truths -> truth
+selfevident -> (No suggestions)
+created -> create
+endowed -> (No suggestions)
+rights -> right
+happinessthat -> (No suggestions)
+rights -> right
+governments -> government
+instituted -> institute
+deriving -> driving
+powers -> power
+governed -> (No suggestions)
+ends -> ens, end
+rigvht -> right
+enw -> (No suggestions)
+principles -> principes, principle
+organizing -> (No suggestions)
+powers -> power
+governments -> government
+changed -> change
+causes -> cause
+shewn -> hewn, sewn, shen
+evils -> evil
+ot -> t, o
+abolishing -> (No suggestions)
+forms -> form
+abuses -> abuse
+usuppations -> (No suggestions)
+pursuing -> (No suggestions)
+evinces -> evince
+guards -> guard
+futrue -> (No suggestions)
+securitysuch -> (No suggestions)
+has -> as, ha
+colonies -> (No suggestions)
+constrains -> constrain
+systems -> system
+presyent -> present
+injuries -> (No suggestions)
+usurpations -> usurpation
+having -> (No suggestions)
+states -> tates, state
+facts -> acts, fact
+submitted -> (No suggestions)
+```
+
+```
+Input file: alice_clean.txt
+Word list file: word_list.txt
+
+vii -> (No suggestions)
+teaparty -> (No suggestions)
+having -> (No suggestions)
+using -> sing
+elbows -> elbow
+looked -> (No suggestions)
+remarked -> (No suggestions)
+isnt -> ist
+invited -> invite
+wants -> want
+hte -> te, he
+remarks -> remark
+... (hundreds of additional "misspelled" words)
+```
+
+
+```
+Input file: brandeis_clean.txt
+Word list file: word_list.txt
+
+brandeis -> (No suggestions)
+defendants -> defendant
+convicted -> (No suggestions)
+persons -> person
+charged -> charge
+arrested -> (No suggestions)
+indicted -> (No suggestions)
+telephones -> telephone
+means -> mans, mean
+communicated -> communicate
+... (hundreds of additional "misspelled" words)
+```
+
+
+
+### Part C: Using a dictionary to create a cache
+
+In the final two tasks, we will modify our code to use a dictionary, rather than a list. This will keep track of our program's work, making it far more efficient and better organized.
+
+We will greatly improve the performance of this code, meaning it will run in less time on `alice.txt` and `brandeis.txt`.
+
+The process of generating every possible correction for every misspelled word generates several candidates, taking a small amount of processor time that can add up for very long texts. Your program should try to avoid this work whenever possible. **Whenever your program attempts to correct a misspelling and generates these candidates, it should save the fruits of this labor to a dictionary, where the key is the misspelling and the value is the string containing the candidates separated by commas and spaces or the phrase "(No suggestions)". When your program sees this misspelling in the future, it should retrieve the response message from this dictionary rather than generating them again from scratch.** The idea that we should save previous computation so we don't have to do it a second time is known as _dynamic programming_, and the dictionary you create in the process of doing so is called a _cache_. 
+
+When you report a misspelling for the second or subsequent time using the cache (what is known as a "cache hit"), print an asterisk after the word in your output to indicate that the cache was used.
+
+For example, the Declaration of Independence example includes the word "rights" twice. The second time your program comes across it, it should print:
+
+```
+rights -> right*
+```
+
+Sample outputs are as follows for `declaration_clean.txt`:
+
+```
+Input file: declaration_clean.txt
+Word list file: word_list_small.txt
+
+states -> tates, state
+events -> evens, event
+bands -> band
+powers -> power
+sttaion -> (No suggestions)
+laws -> las, law
+naturev -> nature
+opinions -> opinion
+requires -> require
+theg -> the
+causes -> cause
+truths -> truth
+selfevident -> (No suggestions)
+created -> create
+endowed -> (No suggestions)
+rights -> right
+happinessthat -> (No suggestions)
+rights -> right*
+governments -> government
+instituted -> institute
+deriving -> driving
+powers -> power*
+governed -> (No suggestions)
+ends -> ens, end
+rigvht -> right
+enw -> (No suggestions)
+principles -> principes, principle
+organizing -> (No suggestions)
+powers -> power*
+governments -> government*
+changed -> change
+causes -> cause*
+shewn -> hewn, sewn, shen
+evils -> evil
+ot -> t, o
+abolishing -> (No suggestions)
+forms -> form
+abuses -> abuse
+usuppations -> (No suggestions)
+pursuing -> (No suggestions)
+evinces -> evince
+guards -> guard
+futrue -> (No suggestions)
+securitysuch -> (No suggestions)
+has -> as, ha
+colonies -> (No suggestions)
+constrains -> constrain
+systems -> system
+presyent -> present
+injuries -> (No suggestions)
+usurpations -> usurpation
+having -> (No suggestions)
+states -> tates, state*
+facts -> acts, fact
+submitted -> (No suggestions)
+```
+
+Adding a cache speeds up the spell check of `brandeis_clean.txt` from about 29.62 seconds to 23.2 seconds on at least one particular computer. This is a measureable but not exactly dramatic improvement.
+
+### Part D: Using a Set
+
+We can do even better. When you loaded the list of properly spelled words from word_list, you probably wrote something like the following:
+```python
+word_list = open(input_filename).read().split('\n')
+```
+
+The variable `word_list` stores a list of strings containing each word in the word_list. To check whether a word is in the word_list, you probably used the boolean test:
+
+```python
+if test_word in word_list:
+    ...
+```
+
+Unfortunately, this approach has a substantial drawback: checking whether an item is in a list using the `in` operator forces Python to check every item in the list one-by-one. `word_list.txt` contains hundreds of thousands of words, meaning that this operation is exceedingly slow.
+
+Thankfully, we can avoid this problem by using a Python set instead. You can convert a list to a set very easily. We won't use sets much in the rest of the class, but [this StackOverflow answer](https://stackoverflow.com/a/12354550/4340151) gives a good description of the key differences between sets and lists.
+
+```python
+word_list = open(input_filename).read().split('\n')
+word_set = set(word_list)
+```
+
+If you decide to use our variable naming convention, you'll have to change your boolean check to read `if test_word in word_set`.
+
+This approach should speed up your program dramatically. Here are results from one computer:
+
+<table>
+	<tr>
+		<td>File</td>
+		<td>word_list</td>
+		<td>Running Time (word_list as list)</td>
+		<td>Running Time (word_list as set)</td>
+	</tr>
+	<tr>
+		<td>`alice_clean.txt`</td>
+		<td>`word_list.txt`</td>
+		<td>14.368 seconds</td>
+		<td>2.61 seconds</td>
+	</tr>
+	<tr>
+		<td>`brandeis_clean.txt`</td>
+		<td>`word_list.txt`</td>
+		<td>23.2 seconds</td>
+		<td>2.69 seconds</td>
+	</tr>
+</table>
+
+Why is this so much faster?
+
+In Python, there are several different ways to store data, like sets, dictionaries, and lists. The `in` operator checks if a given element exists in one of these data structures. Think of a set or a dictionary as a set of boxes, each of which is labeled with a code that tells what's inside. This trick is called a "[hash table](https://en.wikipedia.org/wiki/Hash_table)." That makes it possible to find things very quickly, no matter how many items there are. But lists are like having a set of boxes, lined up in a particular order, where to find a particular object, you have to open each box one by one to see if what you're looking for is inside. This can take more time, especially if the list is big. That's why the `in` operator is much faster for sets and dictionaries than for lists.
+
 
 ***
 
-*This problem set was developed by Jonathan Frankle in 2017 and revised in 2018, 2019, 2020, and 2021 - &copy; 2021*
+## Epilogue
 
-*In past years, Jonathan and Paul have engaged in snarky edit battles in this space debating whether Jonathan (proud Boston resident)
-was prescient for including Tom Brady as an example for a problem set assigned around the time of the Super Bowl. Obviously, Paul has the upperhand this year
-but with Brady fading into the sunset, this feels like a hollow victory.*
+You might be underwhelmed by the accuracy of your spell checker. Remember, we're not asking you to build anything that could compete with what Microsoft and Google have developed. But why is your program flagging so many obviously correctly spelled words as potential misspellings?
+
+The biggest culprit is the word_list file we've given you. To save space, Apple has distributed a word_list file that does not include every possible grammatical variation of each word. If it had, the word_list file would have ballooned in size.
+
+To save space, programs that use Apple's word_list are expected to know a few rules of grammar -- how to transform English words into other variations. Once again, these programs are full of heuristics, rules-of-thumb (albeit pretty precise ones) that transform word roots into other valid English words. For example, notice that Apple's word_list evidently does not realize that past-tense verbs can be formed by adding `ed` to many present-tense verbs, hence the identification of `convicted`, `arrested`, and `indicted` as misspelled.
+
+Your program might also leave something to be desired in the way it creates lists of alternative spellings. Microsoft Word and Google Docs tend to offer shorter suggestion lists than your program, and they tend to order suggestions based on what they most think you meant to spell. In fact, production spell checkers take into account not only the misspelled word but the surrounding linguistic context, trying to use pattern matching to figure out what word you probably meant.
+
+Even though the performance of your spell checker might seem limited, it does not operate that differently from the way production spell checkers do at their core. Think about how far you've come in about a month in this course, from knowing nothing about computer programming to being able to create a functional, useful, and user-friendly piece of software!
+
+***
+
+*This problem set was developed by Paul Ohm in 2018 and restructured to make it simpler in 2019 and 2020. In 2021, it was split into two problem sets. For the compressed version of the class in fall 2023, it was mostly reverted to the 2020 version. For the compressed version of this class in fall 2024, it was again simplified by demoing the stray insertion solution in lecture.* 
