@@ -137,7 +137,7 @@ conspiring
 moment here to give you a word of warning. When Python writes to a file, it permanently deletes any pre-existing versions
 of the file. For emphasis, *there is no way to recover a file once you have overwritten it with Python.* If you use
 Python to write to a file called `very_important_brief.docx`, you will permanently delete the existing version of
-`very_important_brief.docx`. To keep you from shooting yourself in the foot, the starter code for `clean.ipynb` will print an error message if you tell it to overwrite your input file or to overwrite a python file. But you can still overwrite other files if you're not careful with your code. Because you're working in Codespaces, you won't be at risk of deleting files on your local computer. If you accidentally overwrite any of the text files in your Codespace, you can find copies of them in the template repository for this Problem Set. ## XXX ADD LINK AFTER CREATING
+`very_important_brief.docx`. To keep you from shooting yourself in the foot, the starter code for `clean.ipynb` will print an error message if you tell it to overwrite your input file or to overwrite a python file. But you can still overwrite other files if you're not careful with your code. Because you're working in Codespaces, you won't be at risk of deleting files on your local computer. If you accidentally overwrite any of the text files in your Codespace, you can find copies of them in the [template repository for this Problem Set](https://github.com/Computer-Programming-for-Lawyers/ps5).
 
 ***
 
@@ -276,7 +276,7 @@ a user might accidentally type `breead` or `breatd`.
 
 Whenever you detect a misspelled word, apply this heuristic to generate a list of every possible string of characters the user might have meant to have typed instead. To be clear, most of the candidates you generate will be gibberish that aren't real words. We'll get rid of all of those gibberish words in a later step. For now, just come up with every word the user might have meant to have typed.
 
-You must test this heuristic exhaustively. So you need to consider the word with the first letter removed, the second letter removed, and so on, all the way to the word with the final letter removed. **Figuring out how to generate all of these subtle variations is probably the hardest part of the assignment. Revisit the materials from week 4 lecture if you're struggling.** As a hint, break up the misspelled word into smaller parts that you then reassemble through concatenation. So, let's say the input includes the misspelled word `breatd` rather than `bread`. To apply the heuristic, you will need to generate all of the following possibilities:
+You must test this heuristic exhaustively. So you need to consider the word with the first letter removed, the second letter removed, and so on, all the way to the word with the final letter removed. **Figuring out how to generate all of these subtle variations is probably the hardest part of the assignment. Revisit the materials from [week 4 lecture](https://github.com/Computer-Programming-for-Lawyers/Fall-2024/tree/main/lecture/week-4) if you're struggling.** As a hint, break up the misspelled word into smaller parts that you then reassemble through concatenation. So, let's say the input includes the misspelled word `breatd` rather than `bread`. To apply the heuristic, you will need to generate all of the following possibilities:
 
 ```
 reatd
