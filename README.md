@@ -1,4 +1,4 @@
-Problem Set 4: Spell Checker
+Problem Set 5: Spell Checker
 ============================
 *Computer Programming for Lawyers - Fall 2024*
 
