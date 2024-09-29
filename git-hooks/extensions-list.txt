@@ -1,4 +1,4 @@
-Extensions installed on Codespaces: cautious broccoli:
+Extensions installed on Codespaces: probable robot:
 github.codespaces
 github.github-vscode-theme
 github.vscode-pull-request-github
